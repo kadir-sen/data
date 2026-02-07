@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Frontend: lint + typecheck + build ──────────────────
+  web:
+    name: Web (lint, typecheck, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run -w @case/shared build
+      - run: npm run -w @case/web lint
+      - run: npm run -w @case/web typecheck
+      - run: npm run -w @case/web build
+
+  # ── Backend: lint + typecheck + test ────────────────────
+  api:
+    name: API (lint, typecheck, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: pip install uv
+      - name: Install dependencies
+        run: uv pip install --system ".[dev]"
+      - name: Lint (ruff)
+        run: ruff check .
+      - name: Format check (ruff)
+        run: ruff format --check .
+      - name: Typecheck (mypy)
+        run: mypy app
+      - name: Unit tests
+        run: pytest -v -m "not integration"
+      - name: Integration tests
+        run: pytest -v -m "integration"
+
+  # ── Docker compose smoke test ───────────────────────────
+  docker:
+    name: Docker compose smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start services
+        run: docker compose up -d --build --wait
+        timeout-minutes: 5
+      - name: Check API healthz
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/healthz; then
+              echo " API healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API never became healthy"
+          docker compose logs api
+          exit 1
+      - name: Check API OpenAPI schema
+        run: curl -sf http://localhost:8000/openapi.json | python3 -m json.tool
+      - name: Check observability metrics endpoint
+        run: curl -sf http://localhost:8000/obs/metrics | python3 -m json.tool
+      - name: Teardown
+        if: always()
+        run: docker compose down -v

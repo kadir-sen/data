@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+/* Print stylesheet for PDF export */
+@media print {
+  /* Hide non-essential UI */
+  nav,
+  .no-print,
+  .filter-bar,
+  button:not(.print-keep) {
+    display: none !important;
+  }
+
+  /* Reset layout for print */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+  }
+
+  .dashboard-shell {
+    display: block !important;
+    padding: 0 !important;
+  }
+
+  main {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Ensure charts are visible */
+  .recharts-wrapper {
+    page-break-inside: avoid;
+  }
+
+  /* KPI cards in row */
+  .kpi-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8pt !important;
+  }
+
+  .kpi-card {
+    border: 1px solid #ccc !important;
+    padding: 8pt !important;
+    page-break-inside: avoid;
+  }
+
+  /* Chart containers */
+  .chart-container {
+    page-break-inside: avoid;
+    margin-bottom: 12pt;
+  }
+
+  /* Data tables */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 10pt;
+  }
+
+  th,
+  td {
+    border: 1px solid #ccc !important;
+    padding: 4pt 6pt !important;
+  }
+
+  /* Page breaks */
+  .page-break {
+    page-break-before: always;
+  }
+
+  /* Drill-down panel hidden */
+  .drill-down-panel {
+    display: none !important;
+  }
+
+  @page {
+    margin: 1cm;
+    size: A4 landscape;
+  }
+}
